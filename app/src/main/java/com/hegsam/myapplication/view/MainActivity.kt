@@ -7,9 +7,7 @@ import com.hegsam.myapplication.adapter.RecyclerViewAdapter
 import com.hegsam.myapplication.databinding.ActivityMainBinding
 import com.hegsam.myapplication.model.CryptoModel
 import com.hegsam.myapplication.service.CryptoAPI
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import kotlinx.coroutines.*
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -17,6 +15,7 @@ class MainActivity : AppCompatActivity() {
     private val baseUrl = "https://api.nomics.com/v1/"
     private lateinit var cryptoModels : ArrayList<CryptoModel>
     private lateinit var binding : ActivityMainBinding
+    private lateinit var job : Job
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -29,10 +28,11 @@ class MainActivity : AppCompatActivity() {
         val retrofit = Retrofit.Builder().baseUrl(baseUrl).addConverterFactory(GsonConverterFactory.create()).build()
 
         val service = retrofit.create(CryptoAPI::class.java)
-        val call = service.getData()
 
-        call.enqueue(object : Callback<List<CryptoModel>> {
-            override fun onResponse(call: Call<List<CryptoModel>>, response: Response<List<CryptoModel>>) {
+        job = CoroutineScope(Dispatchers.IO).launch {
+            val response = service.getData()
+            withContext(Dispatchers.Main)
+            {
                 if (response.isSuccessful)
                 {
                     response.body()?.let {
@@ -42,11 +42,9 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
+        }
 
-            override fun onFailure(call: Call<List<CryptoModel>>, t: Throwable) {
-                t.printStackTrace()
-            }
 
-        })
+
     }
 }
